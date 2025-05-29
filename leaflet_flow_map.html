@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Molina Collaboration Flow Map - Working Version</title>
+    
+    <!-- Leaflet for reliable mapping -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-size: 14px;
+            min-width: 280px;
+        }
+        
+        .info-panel h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 18px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .stat-label {
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-size: 13px;
+        }
+        
+        .legend h4 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            border-bottom: 3px solid #e74c3c;
+            padding-bottom: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+        }
+        
+        .legend-color {
+            width: 25px;
+            height: 4px;
+            margin-right: 15px;
+            border-radius: 2px;
+        }
+        
+        .title-banner {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 1000;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .flow-popup {
+            font-size: 14px;
+            text-align: center;
+            max-width: 200px;
+        }
+        
+        .flow-popup h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .flow-popup .strength {
+            font-weight: bold;
+            font-size: 18px;
+            color: #e74c3c;
+        }
+        
+        /* Make Leaflet popups transparent */
+        .leaflet-popup-content-wrapper {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(5px);
+        }
+        
+        .leaflet-popup-tip {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="title-banner">
+        🌍 Jose Luis Molina Co-Authorship Map
+    </div>
+    
+    <div class="info-panel">
+        <h3>📊 Global Statistics</h3>
+        <div class="stat-row">
+            <span class="stat-label">Countries Involved:</span>
+            <span class="stat-value">28</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Collaboration Pairs:</span>
+            <span class="stat-value">85</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Total Collaborations:</span>
+            <span class="stat-value">192</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Strongest Partnership:</span>
+            <span class="stat-value">Spain ↔ USA (22)</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Data Status:</span>
+            <span class="stat-value">✅ Corrected</span>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <h4>🔗 Flow Strength Legend</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e74c3c; border: 1px dashed #c0392b;"></div>
+            <span><strong>Weak:</strong> 1-4 collaborations</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #f39c12;"></div>
+            <span><strong>Medium:</strong> 5-10 collaborations</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #27ae60; height: 6px;"></div>
+            <span><strong>Strong:</strong> 11-20 collaborations</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #8e44ad; height: 8px;"></div>
+            <span><strong>Very Strong:</strong> 21+ collaborations</span>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the map
+        console.log("Initializing Leaflet map...");
+        
+        const map = L.map('map', {
+            center: [20, 0],
+            zoom: 2,
+            minZoom: 2,
+            maxZoom: 6,
+            worldCopyJump: true
+        });
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            noWrap: false
+        }).addTo(map);
+        
+        // CORRECTED Collaboration data - 85 edges (recalculated to avoid double-counting)
+        const collaborations = [
+            {source: 'Spain', target: 'USA', weight: 22, sourceCoord: [40.4637, -3.7492], targetCoord: [39.0902, -95.7129]},
+            {source: 'Germany', target: 'Spain', weight: 13, sourceCoord: [51.1657, 10.4515], targetCoord: [40.4637, -3.7492]},
+            {source: 'Mexico', target: 'Spain', weight: 9, sourceCoord: [23.6345, -102.5528], targetCoord: [40.4637, -3.7492]},
+            {source: 'France', target: 'Spain', weight: 7, sourceCoord: [46.2276, 2.2137], targetCoord: [40.4637, -3.7492]},
+            {source: 'Germany', target: 'Switzerland', weight: 6, sourceCoord: [51.1657, 10.4515], targetCoord: [46.8182, 8.2275]},
+            {source: 'Spain', target: 'Switzerland', weight: 6, sourceCoord: [40.4637, -3.7492], targetCoord: [46.8182, 8.2275]},
+            {source: 'Germany', target: 'USA', weight: 5, sourceCoord: [51.1657, 10.4515], targetCoord: [39.0902, -95.7129]},
+            {source: 'Bolivia', target: 'Spain', weight: 5, sourceCoord: [-16.2902, -64.685], targetCoord: [40.4637, -3.7492]},
+            {source: 'Bolivia', target: 'USA', weight: 5, sourceCoord: [-16.2902, -64.685], targetCoord: [39.0902, -95.7129]},
+            {source: 'Spain', target: 'UK', weight: 5, sourceCoord: [40.4637, -3.7492], targetCoord: [55.3781, -3.436]},
+            {source: 'Canada', target: 'Spain', weight: 4, sourceCoord: [56.1304, -106.3468], targetCoord: [40.4637, -3.7492]},
+            {source: 'Switzerland', target: 'USA', weight: 4, sourceCoord: [46.8182, 8.2275], targetCoord: [39.0902, -95.7129]},
+            {source: 'Netherlands', target: 'Spain', weight: 4, sourceCoord: [52.1326, 5.2913], targetCoord: [40.4637, -3.7492]},
+            {source: 'Canada', target: 'USA', weight: 4, sourceCoord: [56.1304, -106.3468], targetCoord: [39.0902, -95.7129]},
+            {source: 'Romania', target: 'Slovenia', weight: 4, sourceCoord: [45.9432, 24.9668], targetCoord: [46.1512, 14.9955]},
+            {source: 'Germany', target: 'Romania', weight: 4, sourceCoord: [51.1657, 10.4515], targetCoord: [45.9432, 24.9668]},
+            {source: 'Germany', target: 'Slovenia', weight: 4, sourceCoord: [51.1657, 10.4515], targetCoord: [46.1512, 14.9955]},
+            {source: 'Bolivia', target: 'Canada', weight: 3, sourceCoord: [-16.2902, -64.685], targetCoord: [56.1304, -106.3468]},
+            {source: 'Romania', target: 'Spain', weight: 3, sourceCoord: [45.9432, 24.9668], targetCoord: [40.4637, -3.7492]},
+            {source: 'Italy', target: 'Spain', weight: 3, sourceCoord: [41.8719, 12.5674], targetCoord: [40.4637, -3.7492]},
+            {source: 'Germany', target: 'UK', weight: 3, sourceCoord: [51.1657, 10.4515], targetCoord: [55.3781, -3.436]},
+            {source: 'Italy', target: 'USA', weight: 2, sourceCoord: [41.8719, 12.5674], targetCoord: [39.0902, -95.7129]},
+            {source: 'France', target: 'Germany', weight: 2, sourceCoord: [46.2276, 2.2137], targetCoord: [51.1657, 10.4515]},
+            {source: 'Switzerland', target: 'UK', weight: 2, sourceCoord: [46.8182, 8.2275], targetCoord: [55.3781, -3.436]},
+            {source: 'France', target: 'UK', weight: 2, sourceCoord: [46.2276, 2.2137], targetCoord: [55.3781, -3.436]},
+            {source: 'Mexico', target: 'USA', weight: 2, sourceCoord: [23.6345, -102.5528], targetCoord: [39.0902, -95.7129]},
+            {source: 'Bulgaria', target: 'Switzerland', weight: 1, sourceCoord: [42.7339, 25.4858], targetCoord: [46.8182, 8.2275]},
+            {source: 'Bulgaria', target: 'USA', weight: 1, sourceCoord: [42.7339, 25.4858], targetCoord: [39.0902, -95.7129]},
+            {source: 'Argentina', target: 'Netherlands', weight: 1, sourceCoord: [-38.4161, -63.6167], targetCoord: [52.1326, 5.2913]},
+            {source: 'Bulgaria', target: 'Germany', weight: 1, sourceCoord: [42.7339, 25.4858], targetCoord: [51.1657, 10.4515]},
+            {source: 'Bulgaria', target: 'Spain', weight: 1, sourceCoord: [42.7339, 25.4858], targetCoord: [40.4637, -3.7492]},
+            {source: 'Bulgaria', target: 'UK', weight: 1, sourceCoord: [42.7339, 25.4858], targetCoord: [55.3781, -3.436]},
+            {source: 'Canada', target: 'France', weight: 1, sourceCoord: [56.1304, -106.3468], targetCoord: [46.2276, 2.2137]},
+            {source: 'Sweden', target: 'USA', weight: 1, sourceCoord: [60.1282, 18.6435], targetCoord: [39.0902, -95.7129]},
+            {source: 'Mexico', target: 'Sweden', weight: 1, sourceCoord: [23.6345, -102.5528], targetCoord: [60.1282, 18.6435]},
+            {source: 'UK', target: 'USA', weight: 1, sourceCoord: [55.3781, -3.436], targetCoord: [39.0902, -95.7129]},
+            {source: 'Canada', target: 'Hungary', weight: 1, sourceCoord: [56.1304, -106.3468], targetCoord: [47.1625, 19.5033]},
+            {source: 'France', target: 'Hungary', weight: 1, sourceCoord: [46.2276, 2.2137], targetCoord: [47.1625, 19.5033]},
+            {source: 'Hungary', target: 'USA', weight: 1, sourceCoord: [47.1625, 19.5033], targetCoord: [39.0902, -95.7129]},
+            {source: 'Bolivia', target: 'Brazil', weight: 1, sourceCoord: [-16.2902, -64.685], targetCoord: [-14.235, -51.9253]},
+            {source: 'Brazil', target: 'Spain', weight: 1, sourceCoord: [-14.235, -51.9253], targetCoord: [40.4637, -3.7492]},
+            {source: 'Bolivia', target: 'Hungary', weight: 1, sourceCoord: [-16.2902, -64.685], targetCoord: [47.1625, 19.5033]},
+            {source: 'South Africa', target: 'Spain', weight: 1, sourceCoord: [-30.5595, 22.9375], targetCoord: [40.4637, -3.7492]},
+            {source: 'South Africa', target: 'USA', weight: 1, sourceCoord: [-30.5595, 22.9375], targetCoord: [39.0902, -95.7129]},
+            {source: 'Spain', target: 'Sweden', weight: 1, sourceCoord: [40.4637, -3.7492], targetCoord: [60.1282, 18.6435]},
+            {source: 'Bolivia', target: 'France', weight: 1, sourceCoord: [-16.2902, -64.685], targetCoord: [46.2276, 2.2137]},
+            {source: 'Brazil', target: 'Canada', weight: 1, sourceCoord: [-14.235, -51.9253], targetCoord: [56.1304, -106.3468]},
+            {source: 'Brazil', target: 'South Africa', weight: 1, sourceCoord: [-14.235, -51.9253], targetCoord: [-30.5595, 22.9375]},
+            {source: 'Canada', target: 'South Africa', weight: 1, sourceCoord: [56.1304, -106.3468], targetCoord: [-30.5595, 22.9375]},
+            {source: 'France', target: 'USA', weight: 1, sourceCoord: [46.2276, 2.2137], targetCoord: [39.0902, -95.7129]},
+            {source: 'Brazil', target: 'USA', weight: 1, sourceCoord: [-14.235, -51.9253], targetCoord: [39.0902, -95.7129]},
+            {source: 'Hungary', target: 'Spain', weight: 1, sourceCoord: [47.1625, 19.5033], targetCoord: [40.4637, -3.7492]},
+            {source: 'Bolivia', target: 'South Africa', weight: 1, sourceCoord: [-16.2902, -64.685], targetCoord: [-30.5595, 22.9375]},
+            {source: 'Canada', target: 'Germany', weight: 1, sourceCoord: [56.1304, -106.3468], targetCoord: [51.1657, 10.4515]},
+            {source: 'Germany', target: 'Mexico', weight: 1, sourceCoord: [51.1657, 10.4515], targetCoord: [23.6345, -102.5528]},
+            {source: 'Netherlands', target: 'USA', weight: 1, sourceCoord: [52.1326, 5.2913], targetCoord: [39.0902, -95.7129]},
+            {source: 'France', target: 'Romania', weight: 1, sourceCoord: [46.2276, 2.2137], targetCoord: [45.9432, 24.9668]},
+            {source: 'France', target: 'Slovenia', weight: 1, sourceCoord: [46.2276, 2.2137], targetCoord: [46.1512, 14.9955]},
+            {source: 'Portugal', target: 'Spain', weight: 1, sourceCoord: [39.3999, -8.2245], targetCoord: [40.4637, -3.7492]},
+            {source: 'Ireland', target: 'Spain', weight: 1, sourceCoord: [53.1424, -7.6921], targetCoord: [40.4637, -3.7492]},
+            {source: 'Estonia', target: 'Spain', weight: 1, sourceCoord: [58.5953, 25.0136], targetCoord: [40.4637, -3.7492]},
+            {source: 'Croatia', target: 'Ireland', weight: 1, sourceCoord: [45.1, 15.2], targetCoord: [53.1424, -7.6921]},
+            {source: 'Croatia', target: 'Estonia', weight: 1, sourceCoord: [45.1, 15.2], targetCoord: [58.5953, 25.0136]},
+            {source: 'Estonia', target: 'Ireland', weight: 1, sourceCoord: [58.5953, 25.0136], targetCoord: [53.1424, -7.6921]},
+            {source: 'Croatia', target: 'Spain', weight: 1, sourceCoord: [45.1, 15.2], targetCoord: [40.4637, -3.7492]},
+            {source: 'Ecuador', target: 'Spain', weight: 1, sourceCoord: [-1.8312, -78.1834], targetCoord: [40.4637, -3.7492]},
+            {source: 'Poland', target: 'USA', weight: 1, sourceCoord: [51.9194, 19.1451], targetCoord: [39.0902, -95.7129]},
+            {source: 'Mexico', target: 'Poland', weight: 1, sourceCoord: [23.6345, -102.5528], targetCoord: [51.9194, 19.1451]},
+            {source: 'Poland', target: 'Spain', weight: 1, sourceCoord: [51.9194, 19.1451], targetCoord: [40.4637, -3.7492]},
+            {source: 'Italy', target: 'Netherlands', weight: 1, sourceCoord: [41.8719, 12.5674], targetCoord: [52.1326, 5.2913]},
+            {source: 'Norway', target: 'Switzerland', weight: 1, sourceCoord: [60.472, 8.4689], targetCoord: [46.8182, 8.2275]},
+            {source: 'Spain', target: 'Turkey', weight: 1, sourceCoord: [40.4637, -3.7492], targetCoord: [38.9637, 35.2433]},
+            {source: 'France', target: 'Switzerland', weight: 1, sourceCoord: [46.2276, 2.2137], targetCoord: [46.8182, 8.2275]},
+            {source: 'France', target: 'India', weight: 1, sourceCoord: [46.2276, 2.2137], targetCoord: [20.5937, 78.9629]},
+            {source: 'India', target: 'Switzerland', weight: 1, sourceCoord: [20.5937, 78.9629], targetCoord: [46.8182, 8.2275]},
+            {source: 'India', target: 'Spain', weight: 1, sourceCoord: [20.5937, 78.9629], targetCoord: [40.4637, -3.7492]},
+            {source: 'India', target: 'UK', weight: 1, sourceCoord: [20.5937, 78.9629], targetCoord: [55.3781, -3.436]},
+            {source: 'Germany', target: 'India', weight: 1, sourceCoord: [51.1657, 10.4515], targetCoord: [20.5937, 78.9629]},
+            {source: 'Mexico', target: 'Netherlands', weight: 1, sourceCoord: [23.6345, -102.5528], targetCoord: [52.1326, 5.2913]},
+            {source: 'Canada', target: 'Switzerland', weight: 1, sourceCoord: [56.1304, -106.3468], targetCoord: [46.8182, 8.2275]},
+            {source: 'Germany', target: 'Norway', weight: 1, sourceCoord: [51.1657, 10.4515], targetCoord: [60.472, 8.4689]},
+            {source: 'Norway', target: 'USA', weight: 1, sourceCoord: [60.472, 8.4689], targetCoord: [39.0902, -95.7129]},
+            {source: 'Norway', target: 'Spain', weight: 1, sourceCoord: [60.472, 8.4689], targetCoord: [40.4637, -3.7492]},
+            {source: 'Canada', target: 'Norway', weight: 1, sourceCoord: [56.1304, -106.3468], targetCoord: [60.472, 8.4689]},
+            {source: 'Argentina', target: 'Spain', weight: 1, sourceCoord: [-38.4161, -63.6167], targetCoord: [40.4637, -3.7492]}
+        ];
+        
+        // Country totals for marker sizing
+        const countryTotals = {};
+        collaborations.forEach(collab => {
+            countryTotals[collab.source] = (countryTotals[collab.source] || 0) + collab.weight;
+            countryTotals[collab.target] = (countryTotals[collab.target] || 0) + collab.weight;
+        });
+        
+        // Unique countries
+        const countries = {};
+        collaborations.forEach(collab => {
+            countries[collab.source] = collab.sourceCoord;
+            countries[collab.target] = collab.targetCoord;
+        });
+        
+        // Store all polylines and markers for highlighting
+        const allPolylines = [];
+        const allMarkers = [];
+        let selectedCountry = null;
+        
+        // Function to highlight connections for a specific country
+        function highlightCountryConnections(countryName) {
+            selectedCountry = countryName;
+            
+            // Dim all polylines first
+            allPolylines.forEach(polylineData => {
+                const { polyline } = polylineData;
+                polyline.setStyle({
+                    opacity: 0.1,
+                    weight: polylineData.originalWeight * 0.5
+                });
+            });
+            
+            // Dim all markers first
+            allMarkers.forEach(markerData => {
+                const { marker } = markerData;
+                marker.setStyle({
+                    fillOpacity: 0.2,
+                    opacity: 0.3
+                });
+            });
+            
+            // Highlight selected country's marker
+            const selectedMarkerData = allMarkers.find(m => m.country === countryName);
+            if (selectedMarkerData) {
+                selectedMarkerData.marker.setStyle({
+                    fillOpacity: 1.0,
+                    opacity: 1.0,
+                    fillColor: '#e74c3c',
+                    color: '#c0392b'
+                });
+            }
+            
+            // Highlight connections involving this country
+            allPolylines.forEach(polylineData => {
+                const { polyline, collab } = polylineData;
+                if (collab.source === countryName || collab.target === countryName) {
+                    polyline.setStyle({
+                        opacity: polylineData.originalOpacity,
+                        weight: polylineData.originalWeight
+                    });
+                    
+                    // Also highlight the connected country's marker
+                    const connectedCountry = collab.source === countryName ? collab.target : collab.source;
+                    const connectedMarkerData = allMarkers.find(m => m.country === connectedCountry);
+                    if (connectedMarkerData) {
+                        connectedMarkerData.marker.setStyle({
+                            fillOpacity: 0.8,
+                            opacity: 0.9,
+                            fillColor: '#3498db',
+                            color: '#2980b9'
+                        });
+                    }
+                }
+            });
+        }
+        
+        // Function to reset all highlights
+        function resetHighlights() {
+            selectedCountry = null;
+            
+            // Reset all polylines
+            allPolylines.forEach(polylineData => {
+                const { polyline } = polylineData;
+                polyline.setStyle({
+                    opacity: polylineData.originalOpacity,
+                    weight: polylineData.originalWeight,
+                    color: polylineData.originalColor
+                });
+            });
+            
+            // Reset all markers
+            allMarkers.forEach(markerData => {
+                const { marker } = markerData;
+                marker.setStyle({
+                    fillOpacity: 0.8,
+                    opacity: 1.0,
+                    fillColor: '#3498db',
+                    color: '#2980b9'
+                });
+            });
+        }
+        
+        // Create markers for each country
+        Object.entries(countries).forEach(([country, coord]) => {
+            const total = countryTotals[country] || 0;
+            const markerSize = Math.max(4, Math.min(12, total / 8)); // Reduced from 8-25 to 4-12
+            
+            const marker = L.circleMarker([coord[0], coord[1]], {
+                radius: markerSize,
+                fillColor: '#3498db',
+                fillOpacity: 0.8,
+                color: '#2980b9',
+                weight: 1.5
+            }).addTo(map);
+            
+            // Add click event for highlighting
+            marker.on('click', function() {
+                if (selectedCountry === country) {
+                    resetHighlights();
+                } else {
+                    highlightCountryConnections(country);
+                }
+            });
+            
+            // Add hover effects
+            marker.on('mouseover', function() {
+                if (!selectedCountry) {
+                    marker.setStyle({
+                        fillOpacity: 1.0,
+                        fillColor: '#e74c3c'
+                    });
+                }
+            });
+            
+            marker.on('mouseout', function() {
+                if (!selectedCountry) {
+                    marker.setStyle({
+                        fillOpacity: 0.8,
+                        fillColor: '#3498db'
+                    });
+                }
+            });
+            
+            marker.bindPopup(`
+                <div style="text-align: center; font-size: 14px;">
+                    <h4 style="margin: 0 0 8px 0; color: #2c3e50;">${country}</h4>
+                    <div><strong>Total Collaborations:</strong> ${total}</div>
+                    <div style="margin-top: 8px; font-size: 12px; color: #7f8c8d;">
+                        Click to highlight connections
+                    </div>
+                </div>
+            `);
+            
+            // Store marker data for interaction
+            allMarkers.push({
+                country: country,
+                marker: marker
+            });
+        });
+        
+        // Add curved flow lines
+        collaborations.forEach(collab => {
+            const sourceLatLng = [collab.sourceCoord[0], collab.sourceCoord[1]];
+            const targetLatLng = [collab.targetCoord[0], collab.targetCoord[1]];
+            
+            // Create a curved path by adding a midpoint offset
+            const midLat = (sourceLatLng[0] + targetLatLng[0]) / 2;
+            const midLng = (sourceLatLng[1] + targetLatLng[1]) / 2;
+            
+            // Calculate offset for curve (perpendicular to the line)
+            const latDiff = targetLatLng[0] - sourceLatLng[0];
+            const lngDiff = targetLatLng[1] - sourceLatLng[1];
+            const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+            
+            // Create curve offset (higher for stronger collaborations)
+            const curveOffset = Math.min(15, Math.max(3, distance * 0.2 + collab.weight * 0.1));
+            const offsetLat = -lngDiff / distance * curveOffset;
+            const offsetLng = latDiff / distance * curveOffset;
+            
+            const curvedMidPoint = [midLat + offsetLat, midLng + offsetLng];
+            
+            // Create curved path with 3 points
+            const curvedPath = [sourceLatLng, curvedMidPoint, targetLatLng];
+            
+            // Determine line style based on weight
+            let color, weight, opacity, dashArray;
+            if (collab.weight >= 1 && collab.weight <= 4) {
+                color = '#e74c3c';
+                weight = 1.5;
+                opacity = 0.6;
+                dashArray = '8, 4';
+            } else if (collab.weight >= 5 && collab.weight <= 10) {
+                color = '#f39c12';
+                weight = 2.5;
+                opacity = 0.7;
+                dashArray = null;
+            } else if (collab.weight >= 11 && collab.weight <= 20) {
+                color = '#27ae60';
+                weight = 3.5;
+                opacity = 0.8;
+                dashArray = null;
+            } else {
+                color = '#8e44ad';
+                weight = 5;
+                opacity = 0.9;
+                dashArray = null;
+            }
+            
+            const polyline = L.polyline(curvedPath, {
+                color: color,
+                weight: weight,
+                opacity: opacity,
+                dashArray: dashArray,
+                smoothFactor: 1.0,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+            
+            polyline.bindPopup(`
+                <div class="flow-popup">
+                    <h4>${collab.source} ↔ ${collab.target}</h4>
+                    <div>Collaborations: <span class="strength">${collab.weight}</span></div>
+                    <div style="margin-top: 8px; font-size: 12px; color: #7f8c8d;">
+                        ${collab.weight >= 21 ? 'Very Strong' : 
+                          collab.weight >= 11 ? 'Strong' : 
+                          collab.weight >= 5 ? 'Medium' : 'Weak'} Partnership
+                    </div>
+                </div>
+            `);
+            
+            // Store polyline data for interaction
+            allPolylines.push({
+                polyline: polyline,
+                collab: collab,
+                originalColor: color,
+                originalWeight: weight,
+                originalOpacity: opacity
+            });
+        });
+        
+        console.log("🌍 Leaflet flow map completed successfully!");
+        console.log(`Added ${Object.keys(countries).length} countries and ${collaborations.length} collaboration flows`);
+        
+        // Add keyboard shortcut to reset highlights
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && selectedCountry) {
+                resetHighlights();
+            }
+        });
+        
+        // Add map click to reset highlights
+        map.on('click', function(e) {
+            if (selectedCountry && !e.originalEvent.target.closest('.leaflet-marker-icon')) {
+                resetHighlights();
+            }
+        });
+    </script>
+</body>
+</html>
