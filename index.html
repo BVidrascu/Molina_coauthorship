@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Molina Collaboration Flow Map - Working Version</title>
+    <title>José Luis Molina Co-authorship Network</title>
     
     <!-- Leaflet for reliable mapping -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -30,7 +30,8 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             z-index: 1000;
             font-size: 14px;
-            min-width: 280px;
+            max-width: 300px;
+            width: 280px;
         }
         
         .info-panel h3 {
@@ -141,27 +142,18 @@
     <div id="map"></div>
     
     <div class="title-banner">
-        🌍 Jose Luis Molina Co-Authorship Map
+        🌍 José Luis Molina Co-Authorship Map
     </div>
     
     <div class="info-panel">
-        <h3>📊 Global Statistics</h3>
-        <div class="stat-row">
-            <span class="stat-label">Countries Involved:</span>
-            <span class="stat-value">28</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Collaboration Pairs:</span>
-            <span class="stat-value">85</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Total Collaborations:</span>
-            <span class="stat-value">192</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Strongest Partnership:</span>
-            <span class="stat-value">Spain ↔ USA (22)</span>
-        </div>
+        <h3>📊 About This Visualization</h3>
+        <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.4;">
+            This visualization maps José Luis Molina's global research network. Starting from his 
+            publication list, we identified all co-authors on each paper and created connections 
+            between their affiliated countries. Each flow line represents collaborative research 
+            between nations, with thickness indicating frequency. Molina's own contributions from 
+            Spain are excluded to focus on international partnerships his work has fostered.
+        </p>
     </div>
     
     <div class="legend">
@@ -202,7 +194,7 @@
             noWrap: false
         }).addTo(map);
         
-        // CORRECTED Collaboration data - 85 edges (recalculated to avoid double-counting)
+        // Clean collaboration data - 85 edges (recalculated to avoid double-counting)
         const collaborations = [
             {source: 'Spain', target: 'USA', weight: 22, sourceCoord: [40.4637, -3.7492], targetCoord: [39.0902, -95.7129]},
             {source: 'Germany', target: 'Spain', weight: 13, sourceCoord: [51.1657, 10.4515], targetCoord: [40.4637, -3.7492]},
@@ -288,7 +280,7 @@
             {source: 'Norway', target: 'USA', weight: 1, sourceCoord: [60.472, 8.4689], targetCoord: [39.0902, -95.7129]},
             {source: 'Norway', target: 'Spain', weight: 1, sourceCoord: [60.472, 8.4689], targetCoord: [40.4637, -3.7492]},
             {source: 'Canada', target: 'Norway', weight: 1, sourceCoord: [56.1304, -106.3468], targetCoord: [60.472, 8.4689]},
-            {source: 'Argentina', target: 'Spain', weight: 1, sourceCoord: [-38.4161, -63.6167], targetCoord: [40.4637, -3.7492]}
+            {source: 'Argentina', target: 'Spain', weight: 1, sourceCoord: [-38.4161, -63.6167], targetCoord: [40.4637, -3.7492]},
         ];
         
         // Country totals for marker sizing
