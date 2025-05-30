@@ -157,22 +157,22 @@
     </div>
     
     <div class="legend">
-        <h4>🔗 Flow Strength Legend</h4>
+        <h4>🔗 Flow Strength</h4>
         <div class="legend-item">
             <div class="legend-color" style="background-color: #e74c3c; border: 1px dashed #c0392b;"></div>
-            <span><strong>Weak:</strong> 1-4 collaborations</span>
+            <span>Weak (1-4)</span>
         </div>
         <div class="legend-item">
             <div class="legend-color" style="background-color: #f39c12;"></div>
-            <span><strong>Medium:</strong> 5-10 collaborations</span>
+            <span>Medium (5-10)</span>
         </div>
         <div class="legend-item">
             <div class="legend-color" style="background-color: #27ae60; height: 6px;"></div>
-            <span><strong>Strong:</strong> 11-20 collaborations</span>
+            <span>Strong (11-20)</span>
         </div>
         <div class="legend-item">
             <div class="legend-color" style="background-color: #8e44ad; height: 8px;"></div>
-            <span><strong>Very Strong:</strong> 21+ collaborations</span>
+            <span>Very Strong (21+)</span>
         </div>
     </div>
 
@@ -188,10 +188,10 @@
             worldCopyJump: true
         });
         
-        // Add tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            noWrap: false
+        // Clean political map - countries only, no cities or labels
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ',
+            maxZoom: 16
         }).addTo(map);
         
         // Clean collaboration data - 85 edges (recalculated to avoid double-counting)
@@ -282,7 +282,7 @@
             {source: 'Canada', target: 'Norway', weight: 1, sourceCoord: [56.1304, -106.3468], targetCoord: [60.472, 8.4689]},
             {source: 'Argentina', target: 'Spain', weight: 1, sourceCoord: [-38.4161, -63.6167], targetCoord: [40.4637, -3.7492]},
         ];
-        
+
         // Country totals for marker sizing
         const countryTotals = {};
         collaborations.forEach(collab => {
@@ -295,6 +295,13 @@
         collaborations.forEach(collab => {
             countries[collab.source] = collab.sourceCoord;
             countries[collab.target] = collab.targetCoord;
+        });
+        
+        // Get list of countries that have collaborations for highlighting
+        const collaborationCountries = new Set();
+        collaborations.forEach(collab => {
+            collaborationCountries.add(collab.source);
+            collaborationCountries.add(collab.target);
         });
         
         // Store all polylines and markers for highlighting
@@ -373,14 +380,15 @@
                 });
             });
             
-            // Reset all markers
+            // Reset all markers to their original collaboration-aware styles
             allMarkers.forEach(markerData => {
-                const { marker } = markerData;
+                const { marker, country } = markerData;
+                const hasCollaboration = collaborationCountries.has(country);
                 marker.setStyle({
-                    fillOpacity: 0.8,
+                    fillOpacity: hasCollaboration ? 0.8 : 0.4,
                     opacity: 1.0,
-                    fillColor: '#3498db',
-                    color: '#2980b9'
+                    fillColor: hasCollaboration ? '#3498db' : '#95a5a6',
+                    color: hasCollaboration ? '#2980b9' : '#7f8c8d'
                 });
             });
         }
@@ -390,57 +398,71 @@
             const total = countryTotals[country] || 0;
             const markerSize = Math.max(4, Math.min(12, total / 8)); // Reduced from 8-25 to 4-12
             
-            const marker = L.circleMarker([coord[0], coord[1]], {
+            // Enhanced styling for countries with collaborations
+            const hasCollaboration = collaborationCountries.has(country);
+            const markerStyle = {
                 radius: markerSize,
-                fillColor: '#3498db',
-                fillOpacity: 0.8,
-                color: '#2980b9',
-                weight: 1.5
-            }).addTo(map);
+                fillColor: hasCollaboration ? '#3498db' : '#95a5a6',
+                fillOpacity: hasCollaboration ? 0.8 : 0.4,
+                color: hasCollaboration ? '#2980b9' : '#7f8c8d',
+                weight: hasCollaboration ? 2 : 1
+            };
             
-            // Add click event for highlighting
-            marker.on('click', function() {
-                if (selectedCountry === country) {
-                    resetHighlights();
-                } else {
-                    highlightCountryConnections(country);
-                }
-            });
+            const marker = L.circleMarker([coord[0], coord[1]], markerStyle).addTo(map);
             
-            // Add hover effects
-            marker.on('mouseover', function() {
-                if (!selectedCountry) {
-                    marker.setStyle({
-                        fillOpacity: 1.0,
-                        fillColor: '#e74c3c'
-                    });
-                }
-            });
-            
-            marker.on('mouseout', function() {
-                if (!selectedCountry) {
-                    marker.setStyle({
-                        fillOpacity: 0.8,
-                        fillColor: '#3498db'
-                    });
-                }
-            });
-            
-            marker.bindPopup(`
-                <div style="text-align: center; font-size: 14px;">
-                    <h4 style="margin: 0 0 8px 0; color: #2c3e50;">${country}</h4>
-                    <div><strong>Total Collaborations:</strong> ${total}</div>
-                    <div style="margin-top: 8px; font-size: 12px; color: #7f8c8d;">
-                        Click to highlight connections
+            // Add click event for highlighting (only for collaboration countries)
+            if (hasCollaboration) {
+                marker.on('click', function() {
+                    if (selectedCountry === country) {
+                        resetHighlights();
+                    } else {
+                        highlightCountryConnections(country);
+                    }
+                });
+                
+                // Add hover effects (only for collaboration countries)
+                marker.on('mouseover', function() {
+                    if (!selectedCountry) {
+                        marker.setStyle({
+                            fillOpacity: 1.0,
+                            fillColor: '#e74c3c'
+                        });
+                    }
+                });
+                
+                marker.on('mouseout', function() {
+                    if (!selectedCountry) {
+                        marker.setStyle({
+                            fillOpacity: 0.8,
+                            fillColor: '#3498db'
+                        });
+                    }
+                });
+                
+                marker.bindPopup(`
+                    <div style="text-align: center; font-size: 14px;">
+                        <h4 style="margin: 0 0 8px 0; color: #2c3e50;">${country}</h4>
+                        <div><strong>Total Collaborations:</strong> ${total}</div>
+                        <div style="margin-top: 8px; font-size: 12px; color: #7f8c8d;">
+                            Click to highlight connections
+                        </div>
                     </div>
-                </div>
-            `);
-            
-            // Store marker data for interaction
-            allMarkers.push({
-                country: country,
-                marker: marker
-            });
+                `);
+                
+                // Store marker data for interaction
+                allMarkers.push({
+                    country: country,
+                    marker: marker
+                });
+            } else {
+                // Simple popup for non-collaboration countries
+                marker.bindPopup(`
+                    <div style="text-align: center; font-size: 14px;">
+                        <h4 style="margin: 0 0 8px 0; color: #2c3e50;">${country}</h4>
+                        <div style="color: #7f8c8d;">No direct collaborations in this network</div>
+                    </div>
+                `);
+            }
         });
         
         // Add curved flow lines
